@@ -71,8 +71,18 @@ def copy_dsym_files(dsym_destination, configuration)
   end
 end
 
+def copy_bcsymbolmap_files(symbols_destination, configuration)
+  symbols_destination.rmtree if symbols_destination.directory?
+  symbols = Pathname.glob("build/#{configuration}-iphoneos/**/*.bcsymbolmap")
+  symbols.each do |symbol|
+    FileUtils.mkdir_p symbols_destination
+    FileUtils.cp_r symbol, symbols_destination, :remove_destination => true
+  end
+end
+
 Pod::HooksManager.register('cocoapods-rome', :post_install) do |installer_context, user_options|
   enable_dsym = user_options.fetch('dsym', true)
+  enable_symbols = user_options.fetch('symbols', true)
   configuration = user_options.fetch('configuration', 'Debug')
   if user_options["pre_compile"]
     user_options["pre_compile"].call(installer_context)
@@ -134,6 +144,7 @@ Pod::HooksManager.register('cocoapods-rome', :post_install) do |installer_contex
   end
 
   copy_dsym_files(sandbox_root.parent + 'dSYM', configuration) if enable_dsym
+  copy_bcsymbolmap_files(sandbox_root.parent + 'bcsymbolmap', configuration) if enable_dsym && enable_symbols
 
   build_dir.rmtree if build_dir.directory?
 
