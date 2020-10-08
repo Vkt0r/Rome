@@ -47,6 +47,17 @@ def enable_debug_information(project_path, configuration)
   project.save
 end
 
+def enable_bitcode(project_path, configuration)
+  project = Xcodeproj::Project.open(project_path)
+  project.targets.each do |target|
+    config = target.build_configurations.find { |config| config.name.eql? configuration }
+    if config.build_settings['BITCODE'] == 'YES'
+      config.build_settings['BITCODE_GENERATION_MODE'] = 'bitcode'
+    end 
+  end
+  project.save
+end
+
 def copy_dsym_files(dsym_destination, configuration)
   dsym_destination.rmtree if dsym_destination.directory?
   platforms = ['iphoneos', 'iphonesimulator']
@@ -71,6 +82,7 @@ Pod::HooksManager.register('cocoapods-rome', :post_install) do |installer_contex
   sandbox = Pod::Sandbox.new(sandbox_root)
 
   enable_debug_information(sandbox.project_path, configuration) if enable_dsym
+  enable_bitcode(sandbox.project_path, configuration)
 
   build_dir = sandbox_root.parent + 'build'
   destination = sandbox_root.parent + 'Rome'
