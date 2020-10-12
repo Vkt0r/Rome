@@ -51,7 +51,7 @@ def enable_bitcode(project_path, configuration)
   project = Xcodeproj::Project.open(project_path)
   project.targets.each do |target|
     config = target.build_configurations.find { |config| config.name.eql? configuration }
-    if config.build_settings['BITCODE'] == 'YES'
+    if config.build_settings['ENABLE_BITCODE'] == 'YES'
       config.build_settings['BITCODE_GENERATION_MODE'] = 'bitcode'
     end 
   end
@@ -72,6 +72,7 @@ def copy_dsym_files(dsym_destination, configuration)
 end
 
 def copy_bcsymbolmap_files(symbols_destination, configuration)
+  Pod::UI.puts "Copying the bcsymbolmap files for the generated framework."
   symbols_destination.rmtree if symbols_destination.directory?
   symbols = Pathname.glob("build/#{configuration}-iphoneos/**/*.bcsymbolmap")
   symbols.each do |symbol|
@@ -91,9 +92,9 @@ Pod::HooksManager.register('cocoapods-rome', :post_install) do |installer_contex
   sandbox_root = Pathname(installer_context.sandbox_root)
   sandbox = Pod::Sandbox.new(sandbox_root)
 
-  enable_debug_information(sandbox.project_path, configuration) if enable_dsym
   enable_bitcode(sandbox.project_path, configuration)
-
+  enable_debug_information(sandbox.project_path, configuration) if enable_dsym
+  
   build_dir = sandbox_root.parent + 'build'
   destination = sandbox_root.parent + 'Rome'
 
@@ -144,7 +145,7 @@ Pod::HooksManager.register('cocoapods-rome', :post_install) do |installer_contex
   end
 
   copy_dsym_files(sandbox_root.parent + 'dSYM', configuration) if enable_dsym
-  copy_bcsymbolmap_files(sandbox_root.parent + 'bcsymbolmap', configuration) if enable_dsym && enable_symbols
+  copy_bcsymbolmap_files(sandbox_root.parent + 'bcsymbolmap', configuration)
 
   build_dir.rmtree if build_dir.directory?
 
